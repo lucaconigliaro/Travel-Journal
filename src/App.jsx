@@ -1,11 +1,18 @@
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Home from './pages/Home.jsx';
+import AddPost from './pages/AddPost.jsx';
+import { PostsProvider } from './context/PostsContext.jsx';
 
-function App() {
-
+export default function App() {
   return (
-    <>
-    <h1 className="container text-primary">Hello world</h1>
-    </>
-  )
+    <PostsProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/add" element={<AddPost />} />
+        </Routes>
+      </BrowserRouter>
+    </PostsProvider>
+  );
 }
-
-export default App
