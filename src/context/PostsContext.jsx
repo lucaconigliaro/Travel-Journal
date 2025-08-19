@@ -4,7 +4,7 @@ import { usePosts } from '../hooks/usePosts.js'; // assicurati estensione .js
 const PostsContext = createContext();
 
 export const PostsProvider = ({ children }) => {
-  const postsHook = usePosts(); // qui dentro l’hook
+  const postsHook = usePosts();
 
   return (
     <PostsContext.Provider value={postsHook}>

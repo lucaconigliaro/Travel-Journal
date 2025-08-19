@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePostsContext } from '../context/PostsContext.jsx';
+import { supabase } from '../supabaseClient';
 
 export default function AddPost() {
   const { addPost } = usePostsContext();
@@ -8,7 +9,7 @@ export default function AddPost() {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [mediaUrl, setMediaUrl] = useState('');
+  const [files, setFiles] = useState([]);
   const [locationName, setLocationName] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
@@ -19,27 +20,63 @@ export default function AddPost() {
   const [economicEffort, setEconomicEffort] = useState(1);
   const [spent, setSpent] = useState('');
   const [tags, setTags] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleFilesChange = (e) => setFiles(Array.from(e.target.files));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await addPost({
-      title,
-      description,
-      media: mediaUrl ? [{ type: 'image', url: mediaUrl }] : [],
-      location_name: locationName,
-      latitude: latitude ? parseFloat(latitude) : null,
-      longitude: longitude ? parseFloat(longitude) : null,
-      mood,
-      positive_reflection: positiveReflection,
-      negative_reflection: negativeReflection,
-      physical_effort: parseInt(physicalEffort),
-      economic_effort: parseInt(economicEffort),
-      spent: spent ? parseFloat(spent) : null,
-      tags: tags ? tags.split(',').map(t => t.trim()) : [],
-    });
+    if (!files.length) {
+      alert("Seleziona almeno un file");
+      return;
+    }
 
-    // Naviga in home dopo submit
-    navigate('/');
+    setLoading(true);
+
+    try {
+      const mediaUrls = [];
+
+      for (let file of files) {
+        const filePath = `${Date.now()}-${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('media')
+          .upload(filePath, file);
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl }, error: urlError } = supabase.storage
+          .from('media')
+          .getPublicUrl(filePath);
+        if (urlError) throw urlError;
+
+        mediaUrls.push({
+          type: file.type.startsWith('video') ? 'video' : 'image',
+          url: publicUrl,
+        });
+      }
+
+      await addPost({
+        title,
+        description,
+        media: mediaUrls,
+        location_name: locationName,
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null,
+        mood,
+        positive_reflection: positiveReflection,
+        negative_reflection: negativeReflection,
+        physical_effort: parseInt(physicalEffort),
+        economic_effort: parseInt(economicEffort),
+        spent: spent ? parseFloat(spent) : null,
+        tags: tags ? tags.split(',').map(t => t.trim()) : [],
+      });
+
+      navigate('/');
+    } catch (err) {
+      console.error('Errore handleSubmit:', err);
+      alert('Errore durante l’aggiunta del post');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -48,7 +85,7 @@ export default function AddPost() {
       <form onSubmit={handleSubmit} className="d-flex flex-column gap-2">
         <input type="text" placeholder="Titolo" value={title} onChange={e => setTitle(e.target.value)} required className="form-control" />
         <textarea placeholder="Descrizione" value={description} onChange={e => setDescription(e.target.value)} className="form-control" />
-        <input type="text" placeholder="URL media" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} className="form-control" />
+        <input type="file" multiple onChange={handleFilesChange} className="form-control" />
         <input type="text" placeholder="Luogo" value={locationName} onChange={e => setLocationName(e.target.value)} className="form-control" />
         <input type="number" placeholder="Latitudine" value={latitude} onChange={e => setLatitude(e.target.value)} className="form-control" />
         <input type="number" placeholder="Longitudine" value={longitude} onChange={e => setLongitude(e.target.value)} className="form-control" />
@@ -59,7 +96,9 @@ export default function AddPost() {
         <input type="number" placeholder="Effort economico (1-5)" value={economicEffort} onChange={e => setEconomicEffort(e.target.value)} min="1" max="5" className="form-control" />
         <input type="number" placeholder="Spesa (€)" value={spent} onChange={e => setSpent(e.target.value)} className="form-control" />
         <input type="text" placeholder="Tags (separati da ,)" value={tags} onChange={e => setTags(e.target.value)} className="form-control" />
-        <button type="submit" className="btn btn-success mt-2">Aggiungi Post</button>
+        <button type="submit" className="btn btn-success mt-2" disabled={loading}>
+          {loading ? 'Caricamento...' : 'Aggiungi Post'}
+        </button>
       </form>
     </div>
   );
