@@ -4,27 +4,31 @@ import Filters from '../components/Filters';
 import PostsList from '../components/PostsList';
 
 export default function Home() {
-    const { posts, fetchPosts } = usePostsContext();
-    const [filteredPosts, setFilteredPosts] = useState([]);
+  const { posts, fetchPosts } = usePostsContext();
+  const [filteredPosts, setFilteredPosts] = useState([]);
 
-    useEffect(() => {
-        fetchPosts();
-    }, []);
+  useEffect(() => {
+    fetchPosts();
+  }, []);
 
-    useEffect(() => {
-        setFilteredPosts(posts);
-    }, [posts]);
+  useEffect(() => {
+    setFilteredPosts(posts);
+  }, [posts]);
 
-    return (
-        <div className="container my-5">
-            <header className="mb-4 text-center">
-                <h1 className="display-4">Travel Journal</h1>
-                <p className="lead">Racconta i tuoi viaggi e scopri le tappe degli altri!</p>
-            </header>
+  return (
+    <div className="bg-dark min-vh-100 text-white py-5">
+      <div className="container">
+        <header className="mb-4 text-center">
+          <h1 className="display-4 text-white">Travel Journal</h1>
+          <p className="lead text-white-50">Racconta i tuoi viaggi e scopri le tappe degli altri!</p>
+        </header>
 
-            <Filters posts={posts} onFilter={setFilteredPosts} />
-
-            <PostsList posts={filteredPosts} />
+        <div className="mb-4">
+          <Filters posts={posts} onFilter={setFilteredPosts} className="text-white" />
         </div>
-    );
+
+        <PostsList posts={filteredPosts} />
+      </div>
+    </div>
+  );
 }

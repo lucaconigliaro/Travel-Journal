@@ -6,8 +6,10 @@ export default function DefaultLayout() {
   return (
     <>
       <Navbar />
-      <main className="container my-4">
-        <Outlet />
+      <main className="bg-dark min-vh-100 py-4 text-white">
+        <div className="container">
+          <Outlet />
+        </div>
       </main>
     </>
   );
