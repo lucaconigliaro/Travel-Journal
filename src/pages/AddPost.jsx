@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePostsContext } from '../context/PostsContext.jsx';
 import { supabase } from '../supabaseClient';
@@ -20,34 +20,34 @@ export default function AddPost() {
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const moodOptions = ["😃 Felice", "😞 Triste", "😡 Arrabbiato", "😌 Rilassato", "🤩 Entusiasta"];
-  const tagOptions = ["viaggio", "natura", "relax", "cultura", "sport", "food"];
-  const effortOptions = [1,2,3,4,5];
+  const moodOptions = useMemo(() => ["😃 Felice", "😞 Triste", "😡 Arrabbiato", "😌 Rilassato", "🤩 Entusiasta"], []);
+  const tagOptions = useMemo(() => ["viaggio", "natura", "relax", "cultura", "sport", "food"], []);
+  const effortOptions = useMemo(() => [1, 2, 3, 4, 5], []);
 
-  const handleFilesChange = (e) => setFiles(Array.from(e.target.files));
+  const handleFilesChange = useCallback((e) => {
+    setFiles(Array.from(e.target.files));
+  }, []);
 
-  const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocalizzazione non supportata dal browser");
-      return;
-    }
+  const handleUseCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) return alert("Geolocalizzazione non supportata dal browser");
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setLocationName(`Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`);
-      },
+      ({ coords: { latitude, longitude } }) => setLocationName(`Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`),
       () => alert("Impossibile ottenere la posizione, inserisci il luogo manualmente")
     );
-  };
+  }, []);
 
-  const handleSubmit = async (e) => {
+  const toggleTag = useCallback((tag) => {
+    setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+  }, []);
+
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-    if (!files.length) { alert("Seleziona almeno un file"); return; }
+    if (!files.length) return alert("Seleziona almeno un file");
 
     setLoading(true);
     try {
       const mediaUrls = [];
-      for (let file of files) {
+      for (const file of files) {
         const filePath = `${Date.now()}-${file.name}`;
         const { error: uploadError } = await supabase.storage.from('media').upload(filePath, file);
         if (uploadError) throw uploadError;
@@ -76,13 +76,13 @@ export default function AddPost() {
     } catch (err) {
       console.error(err);
       alert("Errore durante l'invio del post");
-    } finally { setLoading(false); }
-  };
+    } finally {
+      setLoading(false);
+    }
+  }, [files, title, description, locationName, mood, positiveReflection, negativeReflection, physicalEffort, economicEffort, spent, tags, addPost, navigate]);
 
-  const toggleTag = (tag) => {
-    if (tags.includes(tag)) setTags(tags.filter(t => t !== tag));
-    else setTags([...tags, tag]);
-  };
+  const inputClass = "form-control bg-dark text-white border-secondary";
+  const selectClass = "form-select bg-dark text-white border-secondary";
 
   return (
     <div className="bg-dark min-vh-100 py-5">
@@ -99,17 +99,17 @@ export default function AddPost() {
                   {/* Titolo e descrizione */}
                   <div className="mb-4">
                     <label className="form-label fw-semibold">Titolo del post</label>
-                    <input type="text" className="form-control bg-dark text-white border-secondary" value={title} onChange={e => setTitle(e.target.value)} required placeholder="Scrivi il titolo qui..." />
+                    <input type="text" className={inputClass} value={title} onChange={e => setTitle(e.target.value)} required placeholder="Scrivi il titolo qui..." />
                   </div>
                   <div className="mb-4">
                     <label className="form-label fw-semibold">Descrizione</label>
-                    <textarea className="form-control bg-dark text-white border-secondary" rows="4" value={description} onChange={e => setDescription(e.target.value)} placeholder="Scrivi la descrizione qui..." />
+                    <textarea className={inputClass} rows="4" value={description} onChange={e => setDescription(e.target.value)} placeholder="Scrivi la descrizione qui..." />
                   </div>
 
                   {/* File upload */}
                   <div className="mb-4">
                     <label className="form-label fw-semibold">Media</label>
-                    <input type="file" multiple className="form-control bg-dark text-white border-secondary" onChange={handleFilesChange} />
+                    <input type="file" multiple className={inputClass} onChange={handleFilesChange} />
                     <small className="text-muted">Seleziona immagini o video</small>
                   </div>
 
@@ -117,7 +117,7 @@ export default function AddPost() {
                   <div className="mb-4">
                     <label className="form-label fw-semibold">Luogo</label>
                     <div className="d-flex gap-2">
-                      <input type="text" placeholder="Scrivi il luogo qui..." className="form-control bg-dark text-white border-secondary" value={locationName} onChange={e => setLocationName(e.target.value)} />
+                      <input type="text" placeholder="Scrivi il luogo qui..." className={inputClass} value={locationName} onChange={e => setLocationName(e.target.value)} />
                       <button type="button" className="btn btn-outline-light" onClick={handleUseCurrentLocation}>📍</button>
                     </div>
                   </div>
@@ -146,11 +146,11 @@ export default function AddPost() {
                   <div className="row mb-4">
                     <div className="col-md-6">
                       <label className="form-label fw-semibold">Riflessione positiva</label>
-                      <input type="text" className="form-control bg-dark text-white border-secondary" value={positiveReflection} onChange={e => setPositiveReflection(e.target.value)} />
+                      <input type="text" className={inputClass} value={positiveReflection} onChange={e => setPositiveReflection(e.target.value)} />
                     </div>
                     <div className="col-md-6">
                       <label className="form-label fw-semibold">Riflessione negativa</label>
-                      <input type="text" className="form-control bg-dark text-white border-secondary" value={negativeReflection} onChange={e => setNegativeReflection(e.target.value)} />
+                      <input type="text" className={inputClass} value={negativeReflection} onChange={e => setNegativeReflection(e.target.value)} />
                     </div>
                   </div>
 
@@ -158,13 +158,13 @@ export default function AddPost() {
                   <div className="row mb-4">
                     <div className="col-md-6">
                       <label className="form-label fw-semibold">Impegno fisico</label>
-                      <select className="form-select bg-dark text-white border-secondary" value={physicalEffort} onChange={e => setPhysicalEffort(parseInt(e.target.value))}>
+                      <select className={selectClass} value={physicalEffort} onChange={e => setPhysicalEffort(parseInt(e.target.value))}>
                         {effortOptions.map(n => <option key={n} value={n}>{n}</option>)}
                       </select>
                     </div>
                     <div className="col-md-6">
                       <label className="form-label fw-semibold">Impegno economico</label>
-                      <select className="form-select bg-dark text-white border-secondary" value={economicEffort} onChange={e => setEconomicEffort(parseInt(e.target.value))}>
+                      <select className={selectClass} value={economicEffort} onChange={e => setEconomicEffort(parseInt(e.target.value))}>
                         {effortOptions.map(n => <option key={n} value={n}>{n}</option>)}
                       </select>
                     </div>
@@ -173,7 +173,7 @@ export default function AddPost() {
                   {/* Spesa */}
                   <div className="mb-4">
                     <label className="form-label fw-semibold">Spesa (€)</label>
-                    <input type="number" className="form-control bg-dark text-white border-secondary" value={spent} onChange={e => setSpent(e.target.value)} min="0" step="0.01" placeholder="0.00" />
+                    <input type="number" className={inputClass} value={spent} onChange={e => setSpent(e.target.value)} min="0" step="0.01" placeholder="0.00" />
                   </div>
 
                   {/* Bottoni */}

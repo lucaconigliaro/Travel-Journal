@@ -1,4 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
+import './Filters.css';
+
+// Funzione debounce 
+function useDebounce(value, delay = 300) {
+  const [debounced, setDebounced] = useState(value);
+  React.useEffect(() => {
+    const handler = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debounced;
+}
 
 export default function Filters({ posts, onFilter }) {
   const [searchText, setSearchText] = useState('');
@@ -7,18 +18,24 @@ export default function Filters({ posts, onFilter }) {
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
 
-  useEffect(() => {
+  // Debounce per input testuali
+  const debouncedSearch = useDebounce(searchText);
+  const debouncedMood = useDebounce(moodFilter);
+  const debouncedTags = useDebounce(tagsFilter);
+
+  // Funzione filtraggio memorizzata
+  const filteredPosts = useMemo(() => {
     let filtered = [...posts];
 
     filtered = filtered
       .filter(post =>
-        post.title.toLowerCase().includes(searchText.toLowerCase()) ||
-        (post.description && post.description.toLowerCase().includes(searchText.toLowerCase()))
+        post.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        (post.description && post.description.toLowerCase().includes(debouncedSearch.toLowerCase()))
       )
-      .filter(post => !moodFilter || post.mood === moodFilter)
+      .filter(post => !debouncedMood || post.mood === debouncedMood)
       .filter(post => {
-        if (!tagsFilter) return true;
-        const tagsArr = tagsFilter.split(',').map(t => t.trim().toLowerCase());
+        if (!debouncedTags) return true;
+        const tagsArr = debouncedTags.split(',').map(t => t.trim().toLowerCase());
         return post.tags?.some(tag => tagsArr.includes(tag.toLowerCase()));
       })
       .sort((a, b) => {
@@ -26,38 +43,27 @@ export default function Filters({ posts, onFilter }) {
         else return sortOrder === 'asc' ? new Date(a.created_at) - new Date(b.created_at) : new Date(b.created_at) - new Date(a.created_at);
       });
 
-    onFilter(filtered);
-  }, [searchText, moodFilter, tagsFilter, sortBy, sortOrder, posts]);
+    return filtered;
+  }, [posts, debouncedSearch, debouncedMood, debouncedTags, sortBy, sortOrder]);
+
+  // Aggiorna il filtro solo quando cambia filteredPosts
+  React.useEffect(() => {
+    onFilter(filteredPosts);
+  }, [filteredPosts, onFilter]);
+
+  // Callback per gli input
+  const handleChange = useCallback((setter) => e => setter(e.target.value), []);
 
   const inputClass = "form-control form-control-sm bg-dark text-white border-secondary";
   const selectClass = "form-select form-select-sm bg-dark text-white border-secondary";
 
   return (
-    <div className="mb-3 p-3 d-flex flex-wrap gap-2 align-items-center bg-dark rounded" style={{ position: 'relative' }}>
-      <style>
-        {`
-          .bg-dark input::placeholder,
-          .bg-dark select::placeholder {
-            color: white;
-            opacity: 0.7;
-          }
-          .bg-dark input:hover,
-          .bg-dark select:hover {
-            border-color: #9F83E4;
-          }
-          .bg-dark input:focus,
-          .bg-dark select:focus {
-            border-color: #9F83E4;
-            box-shadow: 0 0 5px #9F83E4;
-          }
-        `}
-      </style>
-
+    <div className="filters-container d-flex flex-wrap gap-2 p-2 bg-dark rounded">
       <input
         type="text"
         placeholder="🔍 Cerca..."
         value={searchText}
-        onChange={e => setSearchText(e.target.value)}
+        onChange={handleChange(setSearchText)}
         className={inputClass}
         style={{ maxWidth: '120px' }}
       />
@@ -65,7 +71,7 @@ export default function Filters({ posts, onFilter }) {
         type="text"
         placeholder="😊 Stato..."
         value={moodFilter}
-        onChange={e => setMoodFilter(e.target.value)}
+        onChange={handleChange(setMoodFilter)}
         className={inputClass}
         style={{ maxWidth: '120px' }}
       />
@@ -73,13 +79,13 @@ export default function Filters({ posts, onFilter }) {
         type="text"
         placeholder="🏷️ Tags..."
         value={tagsFilter}
-        onChange={e => setTagsFilter(e.target.value)}
+        onChange={handleChange(setTagsFilter)}
         className={inputClass}
         style={{ maxWidth: '150px' }}
       />
       <select
         value={sortBy}
-        onChange={e => setSortBy(e.target.value)}
+        onChange={handleChange(setSortBy)}
         className={selectClass}
         style={{ maxWidth: '120px' }}
       >
@@ -88,7 +94,7 @@ export default function Filters({ posts, onFilter }) {
       </select>
       <select
         value={sortOrder}
-        onChange={e => setSortOrder(e.target.value)}
+        onChange={handleChange(setSortOrder)}
         className={selectClass}
         style={{ maxWidth: '120px' }}
       >

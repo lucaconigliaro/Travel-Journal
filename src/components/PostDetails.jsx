@@ -1,22 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 
-export default function PostDetails({ post }) {
+function PostDetails({ post }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   if (!post) return <p className="text-center mt-5 text-white">Seleziona un post per vedere i dettagli</p>;
 
-  const next = () => setActiveIndex((activeIndex + 1) % (post.media?.length || 1));
-  const prev = () => setActiveIndex((activeIndex - 1 + (post.media?.length || 1)) % (post.media?.length || 1));
+  const next = useCallback(() => setActiveIndex((i) => (i + 1) % (post.media?.length || 1)), [post.media]);
+  const prev = useCallback(() => setActiveIndex((i) => (i - 1 + (post.media?.length || 1)) % (post.media?.length || 1)), [post.media]);
 
   return (
     <div className="card bg-dark text-white border-secondary">
       <div className="card-body">
-
-        {/* Titolo e descrizione */}
         {post.title && <h4 className="card-title mb-3">{post.title}</h4>}
         {post.description && <p className="card-text mb-4">{post.description}</p>}
 
-        {/* Media */}
         {post.media?.length > 0 && (
           <div className="position-relative mb-4">
             {post.media.map((m, i) => (
@@ -40,7 +37,6 @@ export default function PostDetails({ post }) {
           </div>
         )}
 
-        {/* Informazioni del post */}
         <div className="row g-3 mb-3">
           {post.location_name && <p className="col-12"><strong>Luogo:</strong> {post.location_name}</p>}
           {post.mood && <p className="col-12"><strong>Stato d’animo:</strong> {post.mood}</p>}
@@ -52,8 +48,9 @@ export default function PostDetails({ post }) {
           {post.tags?.length > 0 && <p className="col-12"><strong>Tags:</strong> {post.tags.join(', ')}</p>}
           {post.created_at && <p className="col-12"><small className="text-muted">{new Date(post.created_at).toLocaleString()}</small></p>}
         </div>
-
       </div>
     </div>
   );
 }
+
+export default React.memo(PostDetails);
