@@ -20,6 +20,12 @@ export default function Home() {
     setFilteredPosts(posts);
   }, [posts]);
 
+  // App.jsx o un componente temporaneo
+useEffect(() => {
+  console.log("SUPABASE URL:", import.meta.env.VITE_SUPABASE_URL);
+  console.log("SUPABASE ANON KEY:", import.meta.env.VITE_SUPABASE_ANON_KEY);
+}, []);
+
   // Se non loggato
   if (!user) {
     return (
