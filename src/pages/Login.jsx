@@ -1,25 +1,29 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export default function Login() {
   const { user, login, signup } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Determina il tab iniziale da state (Accedi o Registrati)
+  const initialMode = location.state?.mode === "signup" ? false : true;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [isLoginMode, setIsLoginMode] = useState(initialMode);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Redirect automatico se loggato
+  // Redirect automatico se già loggato
   useEffect(() => {
-    if (user) navigate("/"); // ⬅️ ora punta alla home correttamente
-  }, [user]);
+    if (user) navigate("/");
+  }, [user, navigate]);
 
-  // Carica dati se "Rimani connesso"
+  // Carica dati salvati se "Rimani connesso"
   useEffect(() => {
     const storedEmail = localStorage.getItem("rememberedEmail");
     const storedPassword = localStorage.getItem("rememberedPassword");
@@ -60,7 +64,7 @@ export default function Login() {
       } else {
         setError(result.error);
       }
-    } catch (err) {
+    } catch {
       setError("Errore durante l'autenticazione");
     } finally {
       setLoading(false);
@@ -83,6 +87,7 @@ export default function Login() {
                   </div>
                 )}
 
+                {/* Email */}
                 <div className="mb-3">
                   <label className="form-label">Email</label>
                   <input
@@ -95,6 +100,7 @@ export default function Login() {
                   />
                 </div>
 
+                {/* Password con toggle */}
                 <div className="mb-3 position-relative">
                   <label className="form-label">Password</label>
                   <input
@@ -123,6 +129,7 @@ export default function Login() {
                   </span>
                 </div>
 
+                {/* Rimani connesso */}
                 <div className="form-check mb-3">
                   <input
                     className="form-check-input"
@@ -137,6 +144,7 @@ export default function Login() {
                   </label>
                 </div>
 
+                {/* Bottoni */}
                 <div className="d-grid gap-2">
                   <button
                     className="btn btn-primary"
