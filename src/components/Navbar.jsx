@@ -1,7 +1,10 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Navbar() {
+  const { user, logout } = useAuth();
+
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary">
       <div className="container">
@@ -20,12 +23,25 @@ export default function Navbar() {
         
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav ms-auto">
-            <li className="nav-item">
-              <Link className="nav-link text-white" to="/">Home</Link>
-            </li>
-            <li className="nav-item">
-              <Link className="nav-link text-white" to="/add">Aggiungi Post</Link>
-            </li>
+            {user ? (
+              <>
+                <li className="nav-item">
+                  <Link className="nav-link text-white" to="/">Home</Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link text-white" to="/add">Aggiungi Post</Link>
+                </li>
+                <li className="nav-item">
+                  <button className="btn btn-sm btn-outline-light ms-2" onClick={logout}>
+                    Logout
+                  </button>
+                </li>
+              </>
+            ) : (
+              <li className="nav-item">
+                <Link className="nav-link text-white" to="/login">Login</Link>
+              </li>
+            )}
           </ul>
         </div>
       </div>
