@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePostsContext } from '../context/PostsContext';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import Filters from '../components/Filters';
 import PostsList from '../components/PostsList';
@@ -12,9 +12,10 @@ export default function Home() {
   const [filteredPosts, setFilteredPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
 
-  // 1️⃣ Carica i post dell'utente appena il componente monta
+  // Carica i post dell'utente appena il componente monta
   useEffect(() => {
     if (user) {
+      console.log("User in Home:", user);
       setLoadingPosts(true);
       fetchPosts(user.id)
         .catch(err => console.error("Errore fetchPosts:", err))
@@ -24,16 +25,10 @@ export default function Home() {
     }
   }, [user]);
 
-  // 2️⃣ Aggiorna i post filtrati quando posts cambiano
+  // Aggiorna i post filtrati quando posts cambiano
   useEffect(() => {
     setFilteredPosts(posts);
   }, [posts]);
-
-  // 3️⃣ Log per debug
-  useEffect(() => {
-    console.log("SUPABASE URL:", import.meta.env.VITE_SUPABASE_URL);
-    console.log("SUPABASE ANON KEY:", import.meta.env.VITE_SUPABASE_ANON_KEY);
-  }, []);
 
   // 🔒 Non loggato
   if (!user) {
@@ -55,7 +50,7 @@ export default function Home() {
     );
   }
 
-  // ⏳ Loading dei post
+  // Loading dei post
   if (loadingPosts) {
     return (
       <div className="text-center mt-5">
@@ -66,20 +61,22 @@ export default function Home() {
     );
   }
 
-  // 👀 Render post o messaggio "nessun post"
+  // Render post o messaggio "nessun post"
   return (
     <div className="container my-5">
-    {/* Hero */}
+      {/* Hero */}
       <section className="text-center mb-5">
-        <h1 className="display-4 mb-3 text-white">Ciao, {user.email}! ✈️</h1>
+        <h1 className="display-4 mb-3 text-white">
+          Ciao, {user.full_name || user.user_metadata?.full_name || "Viaggiatore"}! ✈️
+        </h1>
         <p className="lead mb-3 text-white">
           Benvenuto nel tuo diario di viaggio. Qui puoi raccontare le tue tappe, organizzare nuovi itinerari e rivivere i tuoi ricordi.
         </p>
       </section>
-  
+
       {/* Filtri */}
       {posts.length > 0 && <Filters posts={posts} onFilter={setFilteredPosts} />}
-  
+
       {/* Lista dei post */}
       {filteredPosts.length > 0 ? (
         <PostsList posts={filteredPosts} />

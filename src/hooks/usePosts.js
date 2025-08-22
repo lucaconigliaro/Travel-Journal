@@ -42,7 +42,7 @@ export function usePosts() {
       const { data, error } = await supabase
         .from("posts")
         .insert([{ ...postData, user_id: user.id }])
-        .select() // 👈 Importante: restituisce i dati inseriti
+        .select()
         .single();
 
       if (error) throw error;
@@ -72,6 +72,6 @@ export function usePosts() {
     loading, 
     addPost, 
     fetchPosts,
-    user // Espongo anche l'utente per comodità
+    user
   };
 }

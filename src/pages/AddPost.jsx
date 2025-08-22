@@ -57,7 +57,6 @@ export default function AddPost() {
     for (const file of files) {
       try {
         const fileExt = file.name.split('.').pop();
-        // Qui aggiungiamo "public/" per rispettare la policy
         const fileName = `public/${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
