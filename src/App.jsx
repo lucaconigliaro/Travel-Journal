@@ -4,9 +4,10 @@ import Home from "./pages/Home";
 import AddPost from "./pages/AddPost";
 import DetailPost from "./pages/DetailPost";
 import { PostsProvider } from "./context/PostsContext";
-import { AuthProvider } from "./context/AuthContext"; // 👈 provider auth
+import { AuthProvider } from "./context/AuthContext"; 
 import DefaultLayout from "./layout/DefaultLayout";
 import Login from "./pages/Login";
+import Settings from "./pages/Settings";
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
               <Route path="add" element={<AddPost />} />
               <Route path="post/:id" element={<DetailPost />} />
               <Route path="login" element={<Login />} />
+              <Route path="settings" element={<Settings />} />
             </Route>
           </Routes>
         </BrowserRouter>

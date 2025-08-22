@@ -1,37 +1,23 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import { supabase } from "../supabaseClient";
+// src/context/AuthContext.jsx
+import { createContext, useContext } from "react";
+import { useAuth as useAuthHook } from "../hooks/useAuth";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Controlla subito se c’è già un utente loggato
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user ?? null);
-      setLoading(false);
-    };
-
-    getUser();
-
-    // Listener per login/logout
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const auth = useAuthHook();
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading }}>
+    <AuthContext.Provider value={auth}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
