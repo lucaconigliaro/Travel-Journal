@@ -12,10 +12,8 @@ export default function Home() {
   const [filteredPosts, setFilteredPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
 
-  // Carica i post dell'utente appena il componente monta
   useEffect(() => {
     if (user) {
-      console.log("User in Home:", user);
       setLoadingPosts(true);
       fetchPosts(user.id)
         .catch(err => console.error("Errore fetchPosts:", err))
@@ -25,12 +23,10 @@ export default function Home() {
     }
   }, [user]);
 
-  // Aggiorna i post filtrati quando posts cambiano
   useEffect(() => {
     setFilteredPosts(posts);
   }, [posts]);
 
-  // 🔒 Non loggato
   if (!user) {
     return (
       <div className="d-flex flex-column align-items-center justify-content-center min-vh-100 text-center bg-dark text-white px-3">
@@ -50,7 +46,6 @@ export default function Home() {
     );
   }
 
-  // Loading dei post
   if (loadingPosts) {
     return (
       <div className="text-center mt-5">
@@ -61,7 +56,9 @@ export default function Home() {
     );
   }
 
-  // Render post o messaggio "nessun post"
+  const noPostsAtAll = posts.length === 0;
+  const noPostsFiltered = posts.length > 0 && filteredPosts.length === 0;
+
   return (
     <div className="container my-5">
       {/* Hero */}
@@ -78,9 +75,7 @@ export default function Home() {
       {posts.length > 0 && <Filters posts={posts} onFilter={setFilteredPosts} />}
 
       {/* Lista dei post */}
-      {filteredPosts.length > 0 ? (
-        <PostsList posts={filteredPosts} />
-      ) : (
+      {noPostsAtAll ? (
         <div className="text-center mt-5">
           <h2 className="text-white mb-3">Ancora nessun viaggio raccontato 😔</h2>
           <p className="text-white mb-4">
@@ -91,6 +86,15 @@ export default function Home() {
             Scrivi il tuo primo viaggio ✈️
           </Link>
         </div>
+      ) : noPostsFiltered ? (
+        <div className="text-center mt-5">
+          <h2 className="text-white mb-3">Nessun post trovato 😕</h2>
+          <p className="text-white mb-4">
+            Prova a cercare con altre parole chiave o rimuovi alcuni filtri.
+          </p>
+        </div>
+      ) : (
+        <PostsList posts={filteredPosts} />
       )}
     </div>
   );

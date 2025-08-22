@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../hooks/useAuth';
@@ -13,6 +13,8 @@ export default function AddPost() {
   const [description, setDescription] = useState('');
   const [files, setFiles] = useState([]);
   const [locationName, setLocationName] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
   const [mood, setMood] = useState('');
   const [positiveReflection, setPositiveReflection] = useState('');
   const [negativeReflection, setNegativeReflection] = useState('');
@@ -20,15 +22,29 @@ export default function AddPost() {
   const [economicEffort, setEconomicEffort] = useState(1);
   const [spent, setSpent] = useState('');
   const [tags, setTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  const moodOptions = useMemo(() => ["😃 Felice", "😞 Triste", "😡 Arrabbiato", "😌 Rilassato", "🤩 Entusiasta"], []);
-  const tagOptions = useMemo(() => ["viaggio", "natura", "relax", "cultura", "sport", "food"], []);
-  const effortOptions = useMemo(() => [1, 2, 3, 4, 5], []);
+  const [titleError, setTitleError] = useState(false);
+  const [mediaError, setMediaError] = useState(false);
+  const [locationError, setLocationError] = useState(false);
+
+  const titleRef = useRef();
+  const mediaRef = useRef();
+  const locationRef = useRef();
+  const latitudeRef = useRef();
+  const longitudeRef = useRef();
+  const tagInputRef = useRef();
+
+  const moodOptions = useMemo(() => [
+    "Felice", "Triste", "Arrabbiato", "Rilassato", "Entusiasta", "Curioso", "Stanco"
+  ], []);
 
   const handleFilesChange = useCallback((e) => {
     setFiles(Array.from(e.target.files));
+    setMediaError(false);
     setError('');
   }, []);
 
@@ -37,13 +53,25 @@ export default function AddPost() {
       setError("Geolocalizzazione non supportata dal browser");
       return;
     }
-
+    
+    setError('Ottenendo la posizione...');
+    
     navigator.geolocation.getCurrentPosition(
-      ({ coords: { latitude, longitude } }) => {
-        setLocationName(`Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`);
+      (position) => {
+        const { latitude: lat, longitude: lng } = position.coords;
+        setLatitude(lat.toFixed(6));
+        setLongitude(lng.toFixed(6));
         setError('');
       },
-      () => setError("Impossibile ottenere la posizione, inserisci il luogo manualmente")
+      (error) => {
+        console.error('Geolocation error:', error);
+        setError("Impossibile ottenere la posizione, inserisci manualmente");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
     );
   }, []);
 
@@ -51,24 +79,97 @@ export default function AddPost() {
     setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   }, []);
 
-  const uploadFiles = async (files) => {
-    const mediaUrls = [];
+  const addCustomTag = useCallback(() => {
+    const newTag = tagInput.trim();
+    if (!newTag) return;
+    
+    if (newTag.includes(' ')) {
+      setError("Il tag non può contenere spazi");
+      return;
+    }
+    
+    if (tags.includes(newTag)) {
+      setError("Tag già presente");
+      return;
+    }
+    
+    setTags(prev => [...prev, newTag]);
+    setTagInput('');
+    setError('');
+  }, [tagInput, tags]);
 
+  const handleTagInputKeyDown = useCallback((e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addCustomTag();
+    }
+  }, [addCustomTag]);
+
+  const validateAndShowModal = useCallback(() => {
+    setError('');
+    setTitleError(false);
+    setMediaError(false);
+    setLocationError(false);
+
+    // Validazione campi obbligatori
+    if (!title.trim()) { 
+      setTitleError(true); 
+      titleRef.current?.focus(); 
+      return; 
+    }
+    if (!files.length) { 
+      setMediaError(true); 
+      mediaRef.current?.focus(); 
+      return; 
+    }
+    if (!locationName.trim()) { 
+      setLocationError(true); 
+      locationRef.current?.focus(); 
+      return; 
+    }
+
+    // Se tutto è valido, mostra la modal
+    setShowConfirmModal(true);
+  }, [title, files.length, locationName]);
+
+  // Gestione Enter globale per invio post
+  const handleGlobalKeyDown = useCallback((e) => {
+    if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey) {
+      const activeElement = document.activeElement;
+      const isInInput = activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' || 
+        activeElement.tagName === 'SELECT'
+      );
+      
+      if (!isInInput && !loading) {
+        e.preventDefault();
+        validateAndShowModal();
+      }
+    }
+  }, [loading, validateAndShowModal]);
+
+  // Aggiungi listener per Enter globale
+  useEffect(() => {
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [handleGlobalKeyDown]);
+
+  const capitalizeFirst = (str) => {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
+
+  const uploadFiles = async (files) => {
+    if (!user) throw new Error("Devi essere loggato prima di aggiungere un post");
+    const mediaUrls = [];
     for (const file of files) {
       try {
         const fileExt = file.name.split('.').pop();
         const fileName = `public/${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('media')
-          .upload(fileName, file, { cacheControl: '3600', upsert: false });
-
+        const { error: uploadError } = await supabase.storage.from('media').upload(fileName, file, { cacheControl: '3600', upsert: false });
         if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('media')
-          .getPublicUrl(fileName);
-
+        const { data: { publicUrl } } = supabase.storage.from('media').getPublicUrl(fileName);
         mediaUrls.push({
           type: file.type.startsWith('video') ? 'video' : 'image',
           url: publicUrl,
@@ -79,31 +180,35 @@ export default function AddPost() {
         throw new Error(`Errore durante l'upload di ${file.name}: ${err.message}`);
       }
     }
-
     return mediaUrls;
   };
 
-  const handleSubmit = useCallback(async (e) => {
+  const handleSubmit = useCallback((e) => {
     e.preventDefault();
-    setError('');
+    validateAndShowModal();
+  }, [validateAndShowModal]);
 
-    if (!title.trim()) return setError("Il titolo è obbligatorio");
-    if (!files.length) return setError("Seleziona almeno un file");
-    if (!user) return setError("Devi essere loggato per creare un post");
+  const confirmSubmit = useCallback(async () => {
+    setShowConfirmModal(false);
+    setError('');
+    setTitleError(false);
+    setMediaError(false);
+    setLocationError(false);
 
     setLoading(true);
-
     try {
       const mediaUrls = await uploadFiles(files);
 
       const postData = {
-        title: title.trim(),
-        description: description.trim(),
+        title: capitalizeFirst(title.trim()),
+        description: capitalizeFirst(description.trim()),
         media: mediaUrls,
-        location_name: locationName.trim() || null,
-        mood: mood || null,
-        positive_reflection: positiveReflection.trim() || null,
-        negative_reflection: negativeReflection.trim() || null,
+        location_name: capitalizeFirst(locationName.trim()),
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null,
+        mood: capitalizeFirst(mood) || null,
+        positive_reflection: capitalizeFirst(positiveReflection.trim()) || null,
+        negative_reflection: capitalizeFirst(negativeReflection.trim()) || null,
         physical_effort: physicalEffort,
         economic_effort: economicEffort,
         spent: spent ? parseFloat(spent) : null,
@@ -111,7 +216,6 @@ export default function AddPost() {
       };
 
       const result = await addPost(postData);
-
       if (result.success) navigate('/');
       else throw new Error(result.error || "Errore durante la creazione del post");
 
@@ -121,31 +225,25 @@ export default function AddPost() {
     } finally {
       setLoading(false);
     }
-  }, [files, title, description, locationName, mood, positiveReflection, negativeReflection, physicalEffort, economicEffort, spent, tags, addPost, navigate, user]);
+  }, [files, title, description, locationName, latitude, longitude, mood, positiveReflection, negativeReflection, physicalEffort, economicEffort, spent, tags, addPost, navigate, user]);
 
-  const inputClass = "form-control bg-dark text-white border-secondary";
+  const inputClass = (hasError=false) => `form-control bg-dark text-white border-secondary ${hasError ? 'border-danger' : ''}`;
   const selectClass = "form-select bg-dark text-white border-secondary";
 
-  if (authLoading) {
-    return (
-      <div className="container my-5 text-center">
-        <div className="spinner-border text-light" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
+  if (authLoading) return (
+    <div className="container my-5 text-center">
+      <div className="spinner-border text-light" role="status">
+        <span className="visually-hidden">Loading...</span>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (!user) {
-    return (
-      <div className="container my-5 text-center">
-        <h1 className="display-5 text-white">Devi essere loggato per aggiungere un post</h1>
-        <button className="btn btn-light mt-3" onClick={() => navigate('/login')}>
-          Vai al Login
-        </button>
-      </div>
-    );
-  }
+  if (!user) return (
+    <div className="container my-5 text-center">
+      <h1 className="display-5 text-white">Devi essere loggato per aggiungere un post</h1>
+      <button className="btn btn-light mt-3" onClick={() => navigate('/login')}>Vai al Login</button>
+    </div>
+  );
 
   return (
     <div className="bg-dark min-vh-100 py-5">
@@ -154,38 +252,47 @@ export default function AddPost() {
           <div className="col-lg-8">
             <div className="card text-white bg-dark border-secondary">
               <div className="card-header">
-                <h3 className="mb-0"><i className="bi bi-plus-circle-fill me-2"></i>Aggiungi un nuovo post</h3>
+                <h3 className="mb-0">Aggiungi un nuovo post</h3>
               </div>
               <div className="card-body">
                 {error && <div className="alert alert-danger">{error}</div>}
-
                 <form onSubmit={handleSubmit}>
                   {/* Titolo */}
                   <div className="mb-4">
                     <label className="form-label fw-semibold">Titolo del post *</label>
-                    <input type="text" className={inputClass} value={title} onChange={e => setTitle(e.target.value)} required disabled={loading} placeholder="Scrivi il titolo qui..." />
+                    <input type="text" ref={titleRef} className={inputClass(titleError)} value={title} onChange={e => setTitle(e.target.value)} disabled={loading} placeholder="Scrivi il titolo qui..." />
                   </div>
 
                   {/* Descrizione */}
                   <div className="mb-4">
                     <label className="form-label fw-semibold">Descrizione</label>
-                    <textarea className={inputClass} rows="4" value={description} onChange={e => setDescription(e.target.value)} placeholder="Scrivi la descrizione qui..." disabled={loading} />
+                    <textarea className={inputClass()} rows="4" value={description} onChange={e => setDescription(e.target.value)} disabled={loading} />
                   </div>
 
-                  {/* Upload file */}
+                  {/* Media */}
                   <div className="mb-4">
                     <label className="form-label fw-semibold">Media *</label>
-                    <input type="file" multiple className={inputClass} onChange={handleFilesChange} accept="image/*,video/*" disabled={loading} />
-                    <small className="text-muted">Seleziona immagini o video</small>
-                    {files.length > 0 && <div className="mt-2"><small className="text-info">{files.length} file selezionati: {files.map(f => f.name).join(', ')}</small></div>}
+                    <input type="file" ref={mediaRef} multiple className={inputClass(mediaError)} onChange={handleFilesChange} accept="image/*,video/*" disabled={loading} />
                   </div>
 
-                  {/* Location */}
+                  {/* Luogo */}
                   <div className="mb-4">
-                    <label className="form-label fw-semibold">Luogo</label>
-                    <div className="d-flex gap-2">
-                      <input type="text" className={inputClass} value={locationName} onChange={e => setLocationName(e.target.value)} placeholder="Scrivi il luogo qui..." disabled={loading} />
-                      <button type="button" className="btn btn-outline-light" onClick={handleUseCurrentLocation} disabled={loading}>📍</button>
+                    <label className="form-label fw-semibold">Luogo *</label>
+                    <input type="text" ref={locationRef} className={inputClass(locationError)} value={locationName} onChange={e => setLocationName(e.target.value)} disabled={loading} />
+                  </div>
+
+                  {/* Latitudine / Longitudine con bottone */}
+                  <div className="row mb-4">
+                    <div className="col-md-6">
+                      <label className="form-label fw-semibold">Latitudine</label>
+                      <div className="d-flex gap-2">
+                        <input type="number" ref={latitudeRef} className={inputClass()} value={latitude} onChange={e => setLatitude(e.target.value)} disabled={loading} placeholder="Lat" step="any" />
+                        <button type="button" className="btn btn-outline-light" onClick={handleUseCurrentLocation} disabled={loading}>📍</button>
+                      </div>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label fw-semibold">Longitudine</label>
+                      <input type="number" ref={longitudeRef} className={inputClass()} value={longitude} onChange={e => setLongitude(e.target.value)} disabled={loading} placeholder="Lng" step="any" />
                     </div>
                   </div>
 
@@ -202,60 +309,102 @@ export default function AddPost() {
                   {/* Tags */}
                   <div className="mb-4">
                     <label className="form-label fw-semibold">Tags</label>
-                    <div className="d-flex flex-wrap gap-2">
-                      {tagOptions.map(tag => (
-                        <button key={tag} type="button" onClick={() => toggleTag(tag)} className={`btn btn-sm ${tags.includes(tag) ? 'btn-light text-dark' : 'btn-outline-light'}`} disabled={loading}>{tag}</button>
+                    <div className="d-flex gap-2 mb-2 flex-wrap">
+                      {tags.map(t => (
+                        <span key={t} className="badge bg-secondary d-flex align-items-center gap-1">
+                          {t}
+                          <button type="button" className="btn-close btn-close-white btn-sm" aria-label="Remove" onClick={() => toggleTag(t)}></button>
+                        </span>
                       ))}
+                    </div>
+                    <div className="d-flex gap-2">
+                      <input 
+                        ref={tagInputRef}
+                        type="text" 
+                        className="form-control bg-dark text-white border-secondary" 
+                        value={tagInput} 
+                        onChange={e => setTagInput(e.target.value)} 
+                        onKeyDown={handleTagInputKeyDown}
+                        placeholder="Aggiungi tag senza spazi (premi Enter)" 
+                        disabled={loading} 
+                      />
+                      <button type="button" className="btn btn-outline-light" onClick={addCustomTag} disabled={loading}>Aggiungi</button>
                     </div>
                   </div>
 
                   {/* Riflessioni */}
-                  <div className="row mb-4">
-                    <div className="col-md-6">
-                      <label className="form-label fw-semibold">Riflessione positiva</label>
-                      <input type="text" className={inputClass} value={positiveReflection} onChange={e => setPositiveReflection(e.target.value)} disabled={loading} />
-                    </div>
-                    <div className="col-md-6">
-                      <label className="form-label fw-semibold">Riflessione negativa</label>
-                      <input type="text" className={inputClass} value={negativeReflection} onChange={e => setNegativeReflection(e.target.value)} disabled={loading} />
-                    </div>
+                  <div className="mb-4">
+                    <label className="form-label fw-semibold">Riflessione positiva</label>
+                    <textarea className={inputClass()} rows="2" value={positiveReflection} onChange={e => setPositiveReflection(e.target.value)} disabled={loading} />
+                  </div>
+                  <div className="mb-4">
+                    <label className="form-label fw-semibold">Riflessione negativa</label>
+                    <textarea className={inputClass()} rows="2" value={negativeReflection} onChange={e => setNegativeReflection(e.target.value)} disabled={loading} />
                   </div>
 
-                  {/* Effort */}
+                  {/* Sforzi */}
                   <div className="row mb-4">
                     <div className="col-md-6">
-                      <label className="form-label fw-semibold">Impegno fisico</label>
+                      <label className="form-label fw-semibold">Sforzo fisico</label>
                       <select className={selectClass} value={physicalEffort} onChange={e => setPhysicalEffort(parseInt(e.target.value))} disabled={loading}>
-                        {effortOptions.map(n => <option key={n} value={n}>{n}</option>)}
+                        {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
                       </select>
                     </div>
                     <div className="col-md-6">
-                      <label className="form-label fw-semibold">Impegno economico</label>
+                      <label className="form-label fw-semibold">Sforzo economico</label>
                       <select className={selectClass} value={economicEffort} onChange={e => setEconomicEffort(parseInt(e.target.value))} disabled={loading}>
-                        {effortOptions.map(n => <option key={n} value={n}>{n}</option>)}
+                        {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
                       </select>
                     </div>
                   </div>
 
-                  {/* Spesa */}
+                  {/* Spese */}
                   <div className="mb-4">
                     <label className="form-label fw-semibold">Spesa (€)</label>
-                    <input type="number" className={inputClass} value={spent} onChange={e => setSpent(e.target.value)} min="0" step="0.01" placeholder="0.00" disabled={loading} />
+                    <input type="number" className={inputClass()} value={spent} onChange={e => setSpent(e.target.value)} disabled={loading} placeholder="0.00" min="0" step="0.01" />
                   </div>
 
-                  {/* Bottoni */}
-                  <div className="d-flex justify-content-end gap-2">
-                    <button type="button" className="btn btn-outline-light" onClick={() => navigate('/')} disabled={loading}>Annulla</button>
-                    <button type="submit" className="btn btn-light text-dark" disabled={loading}>
-                      {loading ? <><span className="spinner-border spinner-border-sm me-2" role="status"></span>Caricamento...</> : 'Aggiungi Post'}
+                  {/* Submit */}
+                  <div className="d-grid">
+                    <button type="submit" className="btn btn-light btn-lg" disabled={loading}>
+                      {loading ? 'Caricamento...' : 'Pubblica Post'}
                     </button>
                   </div>
-
                 </form>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Modal di conferma personalizzata */}
+        {showConfirmModal && (
+          <div className="modal show d-block" tabIndex="-1" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content bg-dark text-white border-secondary">
+                <div className="modal-header border-secondary">
+                  <h5 className="modal-title">Conferma pubblicazione</h5>
+                  <button type="button" className="btn-close btn-close-white" onClick={() => setShowConfirmModal(false)}></button>
+                </div>
+                <div className="modal-body">
+                  <p>Sei sicuro di voler pubblicare questo post?</p>
+                  <div className="small text-muted">
+                    <strong>Titolo:</strong> {title || 'Non specificato'}<br />
+                    <strong>Media:</strong> {files.length} file<br />
+                    <strong>Luogo:</strong> {locationName || 'Non specificato'}
+                  </div>
+                </div>
+                <div className="modal-footer border-secondary">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowConfirmModal(false)} disabled={loading}>
+                    Annulla
+                  </button>
+                  <button type="button" className="btn btn-light" onClick={confirmSubmit} disabled={loading}>
+                    {loading ? 'Pubblicando...' : 'Pubblica'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

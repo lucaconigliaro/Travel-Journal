@@ -9,12 +9,15 @@ function PostCard({ post }) {
     navigate(`/post/${post.id}`);
   }, [navigate, post.id]);
 
-  const handleKeyPress = useCallback((e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      goToPost();
-    }
-  }, [goToPost]);
+  const handleKeyPress = useCallback(
+    (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        goToPost();
+      }
+    },
+    [goToPost]
+  );
 
   return (
     <div
@@ -45,14 +48,31 @@ function PostCard({ post }) {
 
       <div className="card-body post-card-body">
         <h6 className="card-title post-card-title">{post.title}</h6>
-        <div className="d-flex align-items-center justify-content-between">
-          <small className="post-card-date">
-            {new Date(post.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}
-          </small>
-          {post.tags?.length > 0 && (
-            <span className="badge post-card-tag">#{post.tags[0]}</span>
-          )}
-        </div>
+
+        {/* Tags */}
+        {post.tags?.length > 0 && (
+          <div className="d-flex flex-wrap gap-1 mb-2">
+            {post.tags.slice(0, 3).map((tag, i) => (
+              <span key={i} className="badge post-card-tag">
+                #{tag}
+              </span>
+            ))}
+            {post.tags.length > 3 && (
+              <span className="badge post-card-tag">
+                +{post.tags.length - 3}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Date */}
+        <small className="post-card-date">
+          {new Date(post.created_at).toLocaleDateString("it-IT", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })}
+        </small>
       </div>
     </div>
   );

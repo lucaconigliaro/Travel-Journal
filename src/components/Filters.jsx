@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import './Filters.css';
 
-// Funzione debounce 
+// Funzione debounce
 function useDebounce(value, delay = 300) {
   const [debounced, setDebounced] = useState(value);
   React.useEffect(() => {
@@ -18,40 +18,56 @@ export default function Filters({ posts, onFilter }) {
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
 
-  // Debounce per input testuali
   const debouncedSearch = useDebounce(searchText);
   const debouncedMood = useDebounce(moodFilter);
   const debouncedTags = useDebounce(tagsFilter);
 
-  // Funzione filtraggio memorizzata
   const filteredPosts = useMemo(() => {
+    const search = debouncedSearch.trim().toLowerCase();
+    const mood = debouncedMood.trim().toLowerCase();
+    const tags = debouncedTags.trim().toLowerCase();
+
     let filtered = [...posts];
 
     filtered = filtered
+      // filtro titolo/descrizione
       .filter(post =>
-        post.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        (post.description && post.description.toLowerCase().includes(debouncedSearch.toLowerCase()))
+        post.title?.toLowerCase().includes(search) ||
+        post.description?.toLowerCase().includes(search)
       )
-      .filter(post => !debouncedMood || post.mood === debouncedMood)
+      // filtro mood parziale
       .filter(post => {
-        if (!debouncedTags) return true;
-        const tagsArr = debouncedTags.split(',').map(t => t.trim().toLowerCase());
-        return post.tags?.some(tag => tagsArr.includes(tag.toLowerCase()));
+        if (!mood) return true;
+        return post.mood?.toLowerCase().includes(mood);
       })
+      // filtro tags parziale
+      .filter(post => {
+        if (!tags) return true;
+        const tagsArr = tags.split(',').map(t => t.trim());
+        return post.tags?.some(tag =>
+          tagsArr.some(t => tag.toLowerCase().includes(t))
+        );
+      })
+      // ordinamento
       .sort((a, b) => {
-        if (sortBy === 'spent') return sortOrder === 'asc' ? (a.spent || 0) - (b.spent || 0) : (b.spent || 0) - (a.spent || 0);
-        else return sortOrder === 'asc' ? new Date(a.created_at) - new Date(b.created_at) : new Date(b.created_at) - new Date(a.created_at);
+        if (sortBy === 'spent') {
+          return sortOrder === 'asc'
+            ? (a.spent || 0) - (b.spent || 0)
+            : (b.spent || 0) - (a.spent || 0);
+        } else {
+          return sortOrder === 'asc'
+            ? new Date(a.created_at) - new Date(b.created_at)
+            : new Date(b.created_at) - new Date(a.created_at);
+        }
       });
 
     return filtered;
   }, [posts, debouncedSearch, debouncedMood, debouncedTags, sortBy, sortOrder]);
 
-  // Aggiorna il filtro solo quando cambia filteredPosts
   React.useEffect(() => {
     onFilter(filteredPosts);
   }, [filteredPosts, onFilter]);
 
-  // Callback per gli input
   const handleChange = useCallback((setter) => e => setter(e.target.value), []);
 
   const inputClass = "form-control form-control-sm bg-dark text-white border-secondary";
