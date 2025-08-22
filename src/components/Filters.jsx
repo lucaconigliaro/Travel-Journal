@@ -15,17 +15,20 @@ export default function Filters({ posts, onFilter }) {
   const [searchText, setSearchText] = useState('');
   const [moodFilter, setMoodFilter] = useState('');
   const [tagsFilter, setTagsFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
 
   const debouncedSearch = useDebounce(searchText);
   const debouncedMood = useDebounce(moodFilter);
   const debouncedTags = useDebounce(tagsFilter);
+  const debouncedLocation = useDebounce(locationFilter);
 
   const filteredPosts = useMemo(() => {
     const search = debouncedSearch.trim().toLowerCase();
     const mood = debouncedMood.trim().toLowerCase();
     const tags = debouncedTags.trim().toLowerCase();
+    const location = debouncedLocation.trim().toLowerCase();
 
     let filtered = [...posts];
 
@@ -48,6 +51,11 @@ export default function Filters({ posts, onFilter }) {
           tagsArr.some(t => tag.toLowerCase().includes(t))
         );
       })
+      // filtro location parziale
+      .filter(post => {
+        if (!location) return true;
+        return post.location_name?.toLowerCase().includes(location);
+      })
       // ordinamento
       .sort((a, b) => {
         if (sortBy === 'spent') {
@@ -62,7 +70,7 @@ export default function Filters({ posts, onFilter }) {
       });
 
     return filtered;
-  }, [posts, debouncedSearch, debouncedMood, debouncedTags, sortBy, sortOrder]);
+  }, [posts, debouncedSearch, debouncedMood, debouncedTags, debouncedLocation, sortBy, sortOrder]);
 
   React.useEffect(() => {
     onFilter(filteredPosts);
@@ -98,6 +106,14 @@ export default function Filters({ posts, onFilter }) {
         onChange={handleChange(setTagsFilter)}
         className={inputClass}
         style={{ maxWidth: '150px' }}
+      />
+      <input
+        type="text"
+        placeholder="📍 Luogo..."
+        value={locationFilter}
+        onChange={handleChange(setLocationFilter)}
+        className={inputClass}
+        style={{ maxWidth: '120px' }}
       />
       <select
         value={sortBy}

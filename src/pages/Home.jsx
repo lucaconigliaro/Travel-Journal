@@ -1,9 +1,11 @@
+// src/pages/Home.jsx
 import React, { useState, useEffect } from 'react';
 import { usePostsContext } from '../context/PostsContext';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import Filters from '../components/Filters';
 import PostsList from '../components/PostsList';
+import MapView from '../components/MapView';
 
 export default function Home() {
   const { posts, fetchPosts } = usePostsContext();
@@ -12,6 +14,7 @@ export default function Home() {
   const [filteredPosts, setFilteredPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
 
+  // Carica i post appena il componente monta
   useEffect(() => {
     if (user) {
       setLoadingPosts(true);
@@ -23,6 +26,7 @@ export default function Home() {
     }
   }, [user]);
 
+  // Aggiorna i post filtrati quando cambiano i post
   useEffect(() => {
     setFilteredPosts(posts);
   }, [posts]);
@@ -73,6 +77,13 @@ export default function Home() {
 
       {/* Filtri */}
       {posts.length > 0 && <Filters posts={posts} onFilter={setFilteredPosts} />}
+
+      {/* Mappa */}
+      {filteredPosts.length > 0 && (
+        <div className="mb-4">
+          <MapView posts={filteredPosts} />
+        </div>
+      )}
 
       {/* Lista dei post */}
       {noPostsAtAll ? (

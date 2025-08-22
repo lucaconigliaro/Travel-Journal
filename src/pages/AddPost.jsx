@@ -53,9 +53,9 @@ export default function AddPost() {
       setError("Geolocalizzazione non supportata dal browser");
       return;
     }
-    
+
     setError('Ottenendo la posizione...');
-    
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude: lat, longitude: lng } = position.coords;
@@ -82,17 +82,17 @@ export default function AddPost() {
   const addCustomTag = useCallback(() => {
     const newTag = tagInput.trim();
     if (!newTag) return;
-    
+
     if (newTag.includes(' ')) {
       setError("Il tag non può contenere spazi");
       return;
     }
-    
+
     if (tags.includes(newTag)) {
       setError("Tag già presente");
       return;
     }
-    
+
     setTags(prev => [...prev, newTag]);
     setTagInput('');
     setError('');
@@ -112,20 +112,20 @@ export default function AddPost() {
     setLocationError(false);
 
     // Validazione campi obbligatori
-    if (!title.trim()) { 
-      setTitleError(true); 
-      titleRef.current?.focus(); 
-      return; 
+    if (!title.trim()) {
+      setTitleError(true);
+      titleRef.current?.focus();
+      return;
     }
-    if (!files.length) { 
-      setMediaError(true); 
-      mediaRef.current?.focus(); 
-      return; 
+    if (!files.length) {
+      setMediaError(true);
+      mediaRef.current?.focus();
+      return;
     }
-    if (!locationName.trim()) { 
-      setLocationError(true); 
-      locationRef.current?.focus(); 
-      return; 
+    if (!locationName.trim()) {
+      setLocationError(true);
+      locationRef.current?.focus();
+      return;
     }
 
     // Se tutto è valido, mostra la modal
@@ -137,11 +137,11 @@ export default function AddPost() {
     if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey) {
       const activeElement = document.activeElement;
       const isInInput = activeElement && (
-        activeElement.tagName === 'INPUT' || 
-        activeElement.tagName === 'TEXTAREA' || 
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
         activeElement.tagName === 'SELECT'
       );
-      
+
       if (!isInInput && !loading) {
         e.preventDefault();
         validateAndShowModal();
@@ -227,7 +227,7 @@ export default function AddPost() {
     }
   }, [files, title, description, locationName, latitude, longitude, mood, positiveReflection, negativeReflection, physicalEffort, economicEffort, spent, tags, addPost, navigate, user]);
 
-  const inputClass = (hasError=false) => `form-control bg-dark text-white border-secondary ${hasError ? 'border-danger' : ''}`;
+  const inputClass = (hasError = false) => `form-control bg-dark text-white border-secondary ${hasError ? 'border-danger' : ''}`;
   const selectClass = "form-select bg-dark text-white border-secondary";
 
   if (authLoading) return (
@@ -276,9 +276,20 @@ export default function AddPost() {
                   </div>
 
                   {/* Luogo */}
+                  {/* Luogo */}
                   <div className="mb-4">
                     <label className="form-label fw-semibold">Luogo *</label>
-                    <input type="text" ref={locationRef} className={inputClass(locationError)} value={locationName} onChange={e => setLocationName(e.target.value)} disabled={loading} />
+                    <input
+                      type="text"
+                      ref={locationRef}
+                      className={inputClass(locationError)}
+                      value={locationName}
+                      onChange={e => setLocationName(e.target.value)}
+                      disabled={loading}
+                    />
+                    <small className="text-warning d-block mt-1">
+                      ⚠️ Per apparire sulla mappa, devi inserire anche latitudine e longitudine.
+                    </small>
                   </div>
 
                   {/* Latitudine / Longitudine con bottone */}
@@ -318,15 +329,15 @@ export default function AddPost() {
                       ))}
                     </div>
                     <div className="d-flex gap-2">
-                      <input 
+                      <input
                         ref={tagInputRef}
-                        type="text" 
-                        className="form-control bg-dark text-white border-secondary" 
-                        value={tagInput} 
-                        onChange={e => setTagInput(e.target.value)} 
+                        type="text"
+                        className="form-control bg-dark text-white border-secondary"
+                        value={tagInput}
+                        onChange={e => setTagInput(e.target.value)}
                         onKeyDown={handleTagInputKeyDown}
-                        placeholder="Aggiungi tag senza spazi (premi Enter)" 
-                        disabled={loading} 
+                        placeholder="Aggiungi tag senza spazi (premi Enter)"
+                        disabled={loading}
                       />
                       <button type="button" className="btn btn-outline-light" onClick={addCustomTag} disabled={loading}>Aggiungi</button>
                     </div>
@@ -347,13 +358,13 @@ export default function AddPost() {
                     <div className="col-md-6">
                       <label className="form-label fw-semibold">Sforzo fisico</label>
                       <select className={selectClass} value={physicalEffort} onChange={e => setPhysicalEffort(parseInt(e.target.value))} disabled={loading}>
-                        {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+                        {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
                       </select>
                     </div>
                     <div className="col-md-6">
                       <label className="form-label fw-semibold">Sforzo economico</label>
                       <select className={selectClass} value={economicEffort} onChange={e => setEconomicEffort(parseInt(e.target.value))} disabled={loading}>
-                        {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+                        {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
                       </select>
                     </div>
                   </div>
@@ -378,7 +389,7 @@ export default function AddPost() {
 
         {/* Modal di conferma personalizzata */}
         {showConfirmModal && (
-          <div className="modal show d-block" tabIndex="-1" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+          <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
             <div className="modal-dialog modal-dialog-centered">
               <div className="modal-content bg-dark text-white border-secondary">
                 <div className="modal-header border-secondary">
