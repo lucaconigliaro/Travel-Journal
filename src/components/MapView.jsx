@@ -1,4 +1,3 @@
-// src/components/TravelMap.jsx
 import React from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
@@ -16,12 +15,16 @@ L.Icon.Default.mergeOptions({
 });
 
 export default function MapView({ posts }) {
-  // Centro di default (Italia)
-  const defaultCenter = [41.8719, 12.5674]; 
+  const defaultCenter = [41.8719, 12.5674]; // Centro Italia
 
   return (
-    <div style={{ height: "400px", width: "100%" }}>
-      <MapContainer center={defaultCenter} zoom={5} scrollWheelZoom={true} style={{ height: "100%", width: "100%" }}>
+    <div className="w-full h-96 rounded border border-gray-300 overflow-hidden">
+      <MapContainer
+        center={defaultCenter}
+        zoom={5}
+        scrollWheelZoom={true}
+        className="w-full h-full"
+      >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
         {posts

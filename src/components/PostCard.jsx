@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import "./PostCard.css";
+import { Image as ImageIcon } from "lucide-react";
 
 function PostCard({ post }) {
   const navigate = useNavigate();
@@ -20,45 +20,47 @@ function PostCard({ post }) {
   );
 
   return (
-    <div
-      className="card post-card"
+    <div className="flex flex-col rounded-xl overflow-hidden cursor-pointer transform transition-all duration-300 hover:-translate-y-1 hover:shadow-lg bg-white text-gray-900"
       onClick={goToPost}
       onKeyDown={handleKeyPress}
       tabIndex={0}
       role="button"
       aria-label={`Visualizza post: ${post.title}`}
-      onMouseEnter={(e) => e.currentTarget.classList.add("hover")}
-      onMouseLeave={(e) => e.currentTarget.classList.remove("hover")}
     >
-      <div className="position-relative post-card-image">
+      {/* Immagine */}
+      <div className="relative h-64 sm:h-72 md:h-80 lg:h-64">
         {post.media?.[0]?.url ? (
           <img
             src={post.media[0].url}
             alt={post.title}
-            className="w-100 h-100 post-card-img"
+            className="w-full h-full object-cover"
             loading="lazy"
           />
         ) : (
-          <div className="post-card-placeholder">
-            <i className="bi bi-image text-light post-card-icon"></i>
+          <div className="flex items-center justify-center w-full h-full bg-gray-100">
+            <ImageIcon className="text-gray-400 w-8 h-8" />
           </div>
         )}
-        <div className="post-card-overlay"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20"></div>
       </div>
 
-      <div className="card-body post-card-body">
-        <h6 className="card-title post-card-title">{post.title}</h6>
+      {/* Body */}
+      <div className="flex flex-col p-4 gap-1 flex-1 bg-white text-black">
+        <h6 className="text-sm font-semibold line-clamp-2">{post.title}</h6>
 
         {/* Tags */}
         {post.tags?.length > 0 && (
-          <div className="d-flex flex-wrap gap-1 mb-2">
+          <div className="flex flex-wrap gap-1 mb-1">
             {post.tags.slice(0, 3).map((tag, i) => (
-              <span key={i} className="badge post-card-tag">
+              <span
+                key={i}
+                className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded text-xs"
+              >
                 #{tag}
               </span>
             ))}
             {post.tags.length > 3 && (
-              <span className="badge post-card-tag">
+              <span className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded text-xs">
                 +{post.tags.length - 3}
               </span>
             )}
@@ -66,7 +68,7 @@ function PostCard({ post }) {
         )}
 
         {/* Date */}
-        <small className="post-card-date">
+        <small className="text-gray-500 text-xs mt-auto">
           {new Date(post.created_at).toLocaleDateString("it-IT", {
             day: "2-digit",
             month: "short",

@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabaseClient";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Settings() {
   const { user, setUser, logout } = useAuth();
+
   const [fullName, setFullName] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -14,14 +16,10 @@ export default function Settings() {
   const [showPasswords, setShowPasswords] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // Carica dati utente
   useEffect(() => {
-    if (user) {
-      setFullName(user.full_name || user.user_metadata?.full_name || "");
-    }
+    if (user) setFullName(user.full_name || user.user_metadata?.full_name || "");
   }, [user]);
 
-  // Timer per messaggi
   useEffect(() => {
     if (success || error) {
       const timer = setTimeout(() => {
@@ -33,65 +31,49 @@ export default function Settings() {
   }, [success, error]);
 
   const updateProfile = useCallback(async () => {
-    if (!fullName.trim()) {
-      setError("Il nome non può essere vuoto");
-      return;
-    }
+    if (!user) return;
+    if (!fullName.trim()) return setError("Il nome non può essere vuoto");
+
     setLoading(true);
     setError("");
     try {
       const { error: updateError } = await supabase.auth.updateUser({
-        data: { full_name: fullName }
+        data: { full_name: fullName },
       });
       if (updateError) throw updateError;
 
-      const { error: profileError } = await supabase.from("profiles").upsert({
-        id: user.id,
-        full_name: fullName,
-        updated_at: new Date().toISOString(),
-      });
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert({ id: user.id, full_name: fullName, updated_at: new Date().toISOString() });
       if (profileError) throw profileError;
 
       setSuccess("Profilo aggiornato con successo!");
       setShowSuccessModal(true);
-
-      // Aggiorna il context così il nome in navbar si aggiorna subito
-      if (setUser) setUser(prev => ({ ...prev, full_name: fullName }));
-
+      setUser?.((prev) => ({ ...prev, full_name: fullName }));
     } catch (err) {
-      console.error("Update profile error:", err);
+      console.error(err);
       setError(err.message || "Errore durante l'aggiornamento del profilo");
     } finally {
       setLoading(false);
     }
-  }, [fullName, user.id, setUser]);
+  }, [fullName, user, setUser]);
 
   const updatePassword = useCallback(async () => {
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setError("Compila tutti i campi della password");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setError("Le nuove password non coincidono");
-      return;
-    }
-    if (newPassword.length < 6) {
-      setError("La nuova password deve essere di almeno 6 caratteri");
-      return;
-    }
+    if (!currentPassword || !newPassword || !confirmPassword)
+      return setError("Compila tutti i campi della password");
+    if (newPassword !== confirmPassword) return setError("Le nuove password non coincidono");
+    if (newPassword.length < 6) return setError("La nuova password deve essere di almeno 6 caratteri");
 
     setLoading(true);
     setError("");
     try {
       const { error: loginError } = await supabase.auth.signInWithPassword({
         email: user.email,
-        password: currentPassword
+        password: currentPassword,
       });
       if (loginError) throw new Error("Password attuale non corretta");
 
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword
-      });
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
       if (updateError) throw updateError;
 
       setSuccess("Password cambiata con successo!");
@@ -100,7 +82,7 @@ export default function Settings() {
       setConfirmPassword("");
       setShowSuccessModal(true);
     } catch (err) {
-      console.error("Update password error:", err);
+      console.error(err);
       setError(err.message || "Errore durante il cambio password");
     } finally {
       setLoading(false);
@@ -109,169 +91,129 @@ export default function Settings() {
 
   const handleLogout = useCallback(async () => {
     const result = await logout();
-    if (result.success) {
-      window.location.href = "/login";
-    }
+    if (result.success) window.location.href = "/";
   }, [logout]);
 
-  if (!user) {
+  if (!user)
     return (
-      <div className="container mt-5">
-        <div className="alert alert-warning text-center">
-          Devi fare login per accedere alle impostazioni.
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="bg-white shadow-md rounded-xl p-6 text-center w-full max-w-md">
+          <p className="text-gray-700">Devi fare login per accedere alle impostazioni.</p>
         </div>
       </div>
     );
-  }
+
+  const inputClass =
+    "w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500";
 
   return (
-    <div className="container mt-5">
-      <div className="row justify-content-center">
-        <div className="col-md-8">
-          <h1 className="text-white mb-4">Impostazioni Account</h1>
+    <div className="min-h-screen py-10 px-4">
+      <div className="max-w-3xl mx-auto space-y-6">
+        <h1 className="text-3xl font-bold text-gray-800">Impostazioni Account</h1>
 
-          {error && <div className="alert alert-danger">{error}</div>}
-          {success && <div className="alert alert-success">{success}</div>}
+        {error && <div className="text-red-600 bg-red-100 p-3 rounded-md">{error}</div>}
+        {success && <div className="text-green-700 bg-green-100 p-3 rounded-md">{success}</div>}
 
-          {/* Profilo */}
-          <div className="card bg-dark text-white border-secondary mb-4">
-            <div className="card-header">
-              <h3 className="mb-0">Profilo</h3>
-            </div>
-            <div className="card-body">
-              <div className="mb-3">
-                <label className="form-label">Nome completo</label>
-                <input
-                  type="text"
-                  className="form-control bg-dark text-white border-secondary"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  disabled={loading}
-                  placeholder="Il tuo nome"
-                />
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Email</label>
-                <input
-                  type="email"
-                  className="form-control bg-dark text-white border-secondary"
-                  value={user.email}
-                  disabled
-                  title="L'email non può essere modificata"
-                />
-              </div>
-              <button
-                className="btn btn-primary"
-                onClick={updateProfile}
+        {/* Profilo */}
+        <div className="bg-white rounded-xl shadow-md p-6 space-y-4">
+          <h2 className="text-xl font-semibold text-gray-800">Profilo</h2>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-gray-600 mb-1">Nome completo</label>
+              <input
+                type="text"
+                className={inputClass}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 disabled={loading}
-              >
-                {loading ? "Salvando..." : "Salva Nome"}
-              </button>
+                placeholder="Il tuo nome"
+              />
             </div>
+            <div>
+              <label className="block text-gray-600 mb-1">Email</label>
+              <input
+                type="email"
+                className={inputClass + " bg-gray-100 cursor-not-allowed"}
+                value={user.email}
+                disabled
+              />
+            </div>
+            <button
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+              onClick={updateProfile}
+              disabled={loading}
+            >
+              {loading ? "Salvando..." : "Salva Nome"}
+            </button>
           </div>
+        </div>
 
-          {/* Password */}
-          <div className="card bg-dark text-white border-secondary mb-4">
-            <div className="card-header d-flex justify-content-between align-items-center">
-              <h3 className="mb-0">Cambia Password</h3>
-              <button
-                className="btn btn-sm btn-outline-light"
-                onClick={() => setShowPasswords(!showPasswords)}
-                type="button"
-              >
-                {showPasswords ? "Nascondi" : "Mostra"} Password
-              </button>
-            </div>
-            <div className="card-body">
-              <div className="mb-3">
-                <label className="form-label">Password attuale</label>
+        {/* Password */}
+        <div className="bg-white rounded-xl shadow-md p-6 space-y-4">
+          <h2 className="text-xl font-semibold text-gray-800">Cambia Password</h2>
+          <div className="space-y-3 relative">
+            {[
+              { label: "Password attuale", value: currentPassword, setter: setCurrentPassword },
+              { label: "Nuova password", value: newPassword, setter: setNewPassword },
+              { label: "Conferma nuova password", value: confirmPassword, setter: setConfirmPassword },
+            ].map((field, idx) => (
+              <div key={idx} className="relative">
+                <label className="block text-gray-600 mb-1">{field.label}</label>
                 <input
                   type={showPasswords ? "text" : "password"}
-                  className="form-control bg-dark text-white border-secondary"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className={inputClass + " pr-10"}
+                  value={field.value}
+                  onChange={(e) => field.setter(e.target.value)}
                   disabled={loading}
-                  placeholder="Inserisci la password attuale"
+                  placeholder={field.label}
                 />
               </div>
-              <div className="mb-3">
-                <label className="form-label">Nuova password</label>
-                <input
-                  type={showPasswords ? "text" : "password"}
-                  className="form-control bg-dark text-white border-secondary"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  disabled={loading}
-                  placeholder="Inserisci la nuova password"
-                />
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Conferma nuova password</label>
-                <input
-                  type={showPasswords ? "text" : "password"}
-                  className="form-control bg-dark text-white border-secondary"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={loading}
-                  placeholder="Conferma la nuova password"
-                />
-              </div>
-              <button
-                className="btn btn-warning"
-                onClick={updatePassword}
-                disabled={loading}
-              >
-                {loading ? "Cambiando..." : "Cambia Password"}
-              </button>
-            </div>
-          </div>
+            ))}
 
-          {/* Logout */}
-          <div className="card bg-dark text-white border-danger">
-            <div className="card-header">
-              <h3 className="mb-0 text-danger">Zona Pericolosa</h3>
-            </div>
-            <div className="card-body">
-              <p>Esci dal tuo account su questo dispositivo.</p>
-              <button
-                className="btn btn-danger"
-                onClick={handleLogout}
-                disabled={loading}
-              >
-                Logout
-              </button>
-            </div>
+            <button
+              type="button"
+              className="absolute right-2 top-2.5 text-gray-500"
+              onClick={() => setShowPasswords(!showPasswords)}
+            >
+              {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+
+            <button
+              className="mt-4 w-full bg-yellow-400 text-gray-800 px-4 py-2 rounded-lg hover:bg-yellow-500 transition"
+              onClick={updatePassword}
+              disabled={loading}
+            >
+              {loading ? "Cambiando..." : "Cambia Password"}
+            </button>
           </div>
+        </div>
+
+        {/* Logout */}
+        <div className="bg-white rounded-xl shadow-md p-6 space-y-3">
+          <h2 className="text-xl font-semibold text-gray-800">Logout</h2>
+          <p className="text-gray-600">Esci dal tuo account su questo dispositivo.</p>
+          <button
+            className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
+            onClick={handleLogout}
+            disabled={loading}
+          >
+            Logout
+          </button>
         </div>
       </div>
 
       {/* Modal */}
       {showSuccessModal && (
-        <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content bg-dark text-white border-success">
-              <div className="modal-header border-success">
-                <h4 className="modal-title text-success">✅ Successo!</h4>
-                <button
-                  type="button"
-                  className="btn-close btn-close-white"
-                  onClick={() => setShowSuccessModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body text-center py-4">
-                <div className="mb-3"><span style={{ fontSize: '4rem' }}>🎉</span></div>
-                <p className="lead">{success}</p>
-                <p className="text-muted">Le modifiche sono state applicate al tuo account.</p>
-              </div>
-              <div className="modal-footer border-success">
-                <button
-                  className="btn btn-success"
-                  onClick={() => setShowSuccessModal(false)}
-                >
-                  Perfetto! 👍
-                </button>
-              </div>
-            </div>
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50">
+          <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full text-center space-y-4">
+            <h3 className="text-green-700 text-2xl font-bold">✅ Successo!</h3>
+            <p className="text-gray-700">{success}</p>
+            <button
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+              onClick={() => setShowSuccessModal(false)}
+            >
+              Perfetto
+            </button>
           </div>
         </div>
       )}

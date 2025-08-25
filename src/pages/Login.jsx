@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const { user, login, signup } = useAuth();
@@ -63,115 +64,93 @@ export default function Login() {
   };
 
   return (
-    <div className="bg-dark min-vh-100 d-flex align-items-center justify-content-center px-3">
-      <div className="container">
-        <div className="row justify-content-center">
-          <div className="col-md-6 col-lg-4">
-            <div className="card bg-dark text-white border-secondary">
-              <div className="card-header text-center">
-                <h3>{isLoginMode ? "Accedi" : "Registrati"}</h3>
-              </div>
-              <div className="card-body">
-                {error && <div className="alert alert-danger mb-3">{error}</div>}
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-md p-8">
+        <h2 className="text-2xl font-semibold text-gray-800 text-center mb-6">
+          {isLoginMode ? "Accedi" : "Registrati"}
+        </h2>
 
-                {!isLoginMode && (
-                  <div className="mb-3">
-                    <label className="form-label">Nome completo</label>
-                    <input
-                      type="text"
-                      className="form-control bg-dark text-white border-secondary"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      disabled={loading}
-                      placeholder="Il tuo nome"
-                    />
-                  </div>
-                )}
+        {error && (
+          <div className="mb-4 text-sm text-red-600 text-center">{error}</div>
+        )}
 
-                <div className="mb-3">
-                  <label className="form-label">Email</label>
-                  <input
-                    type="email"
-                    className="form-control bg-dark text-white border-secondary"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="mb-3 position-relative">
-                  <label className="form-label">Password</label>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    className="form-control bg-dark text-white border-secondary"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    style={{ paddingRight: "40px" }}
-                  />
-                  <span
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{
-                      position: "absolute",
-                      right: "10px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      cursor: "pointer",
-                      color: "white",
-                      fontSize: "1.2rem",
-                      zIndex: 10,
-                    }}
-                  >
-                    {showPassword ? "🙈" : "👁️"}
-                  </span>
-                </div>
-
-                <div className="form-check mb-3">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={() => setRememberMe(!rememberMe)}
-                    className="form-check-input"
-                    id="rememberMe"
-                    disabled={loading}
-                  />
-                  <label className="form-check-label" htmlFor="rememberMe">
-                    Rimani connesso
-                  </label>
-                </div>
-
-                <div className="d-grid gap-2">
-                  <button
-                    className="btn btn-primary"
-                    onClick={handleAuth}
-                    disabled={loading}
-                  >
-                    {loading
-                      ? isLoginMode
-                        ? "Accesso..."
-                        : "Registrazione..."
-                      : isLoginMode
-                        ? "Accedi"
-                        : "Registrati"}
-                  </button>
-
-                  <button
-                    className="btn btn-outline-light btn-sm"
-                    onClick={() => {
-                      setIsLoginMode(!isLoginMode);
-                      setError("");
-                    }}
-                    disabled={loading}
-                  >
-                    {isLoginMode
-                      ? "Non hai un account? Registrati"
-                      : "Hai già un account? Accedi"}
-                  </button>
-                </div>
-              </div>
-            </div>
+        {!isLoginMode && (
+          <div className="mb-4">
+            <label className="block text-gray-700 mb-1 font-medium">Nome completo</label>
+            <input
+              type="text"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              disabled={loading}
+              placeholder="Il tuo nome"
+            />
           </div>
+        )}
+
+        <div className="mb-4">
+          <label className="block text-gray-700 mb-1 font-medium">Email</label>
+          <input
+            type="email"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
+            placeholder="esempio@email.com"
+          />
         </div>
+
+        <div className="mb-4 relative">
+          <label className="block text-gray-700 mb-1 font-medium">Password</label>
+          <input
+            type={showPassword ? "text" : "password"}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300 pr-10"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
+            placeholder="********"
+          />
+          <button
+            type="button"
+            className="absolute right-2 top-2.5 text-gray-500 hover:text-gray-700"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
+
+        <div className="flex items-center mb-6">
+          <input
+            type="checkbox"
+            id="rememberMe"
+            checked={rememberMe}
+            onChange={() => setRememberMe(!rememberMe)}
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            disabled={loading}
+          />
+          <label htmlFor="rememberMe" className="ml-2 block text-gray-700 text-sm">
+            Rimani connesso
+          </label>
+        </div>
+
+        <button
+          onClick={handleAuth}
+          disabled={loading}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition"
+        >
+          {loading ? (isLoginMode ? "Accesso..." : "Registrazione...") : (isLoginMode ? "Accedi" : "Registrati")}
+        </button>
+
+        <button
+          onClick={() => {
+            setIsLoginMode(!isLoginMode);
+            setError("");
+          }}
+          disabled={loading}
+          className="mt-4 w-full text-indigo-600 hover:text-indigo-800 font-medium transition"
+        >
+          {isLoginMode ? "Non hai un account? Registrati" : "Hai già un account? Accedi"}
+        </button>
       </div>
     </div>
   );
