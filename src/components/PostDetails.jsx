@@ -36,18 +36,18 @@ function PostDetails({ post }) {
       {/* Media Gallery */}
       {post.media?.length > 0 && (
         <div className="relative">
-          <div className="aspect-video md:aspect-[16/10] overflow-hidden">
+          <div className="aspect-video md:aspect-[16/10] overflow-hidden bg-gray-100">
             {post.media.map((m, i) => (
-              <div key={i} className={`w-full h-full ${i === activeIndex ? "block" : "hidden"}`}>
+              <div key={i} className={`w-full h-full flex items-center justify-center ${i === activeIndex ? "block" : "hidden"}`}>
                 {m.type === "image" ? (
                   <img
                     src={m.url}
                     alt={post.title}
-                    className="w-full h-full object-cover"
+                    className="max-w-full max-h-full object-contain"
                   />
                 ) : (
                   <video
-                    className="w-full h-full object-cover"
+                    className="max-w-full max-h-full object-contain"
                     controls
                   >
                     <source src={m.url} type="video/mp4" />
