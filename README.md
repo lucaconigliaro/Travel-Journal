@@ -5,7 +5,7 @@ Un'applicazione web per documentare i viaggi, raccogliere momenti significativi 
 ---
 
 ## 🚀 Live Demo
-Puoi provare la Web App direttamente a questo link: [Travel Journal App Live](hhttps://travel-journal-app-two.vercel.app/)
+[Travel Journal App Live](https://travel-journal-app-two.vercel.app/)
 
 ## 🎯 Obiettivo
 
